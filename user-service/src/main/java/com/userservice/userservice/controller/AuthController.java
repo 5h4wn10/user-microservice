@@ -1,6 +1,7 @@
 package com.userservice.userservice.controller;
 
 import com.userservice.userservice.dto.AuthDTO;
+import com.userservice.userservice.dto.UserDTO;
 import com.userservice.userservice.model.Role;
 import com.userservice.userservice.model.User;
 import com.userservice.userservice.service.AuthService;
@@ -39,9 +40,10 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> loginUser(@RequestBody AuthDTO authRequest) {
         boolean isAuthenticated = authService.authenticate(authRequest.getUsername(), authRequest.getPassword());
         if (isAuthenticated) {
-            User user = userService.getUserByUsername(authRequest.getUsername())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
+            UserDTO user = userService.getUserByUsername(authRequest.getUsername());
+            if (user == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            }
             Role role = user.getRole();
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Login successful");

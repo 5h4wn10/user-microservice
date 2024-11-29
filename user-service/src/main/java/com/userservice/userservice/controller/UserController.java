@@ -84,7 +84,14 @@ public class UserController {
         }
     }
 
-
+    @GetMapping("/by-username/{username}")
+    public ResponseEntity<UserDTO> getUserByUsername(@PathVariable String username) {
+        UserDTO user = userService.getUserByUsername(username);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(user);
+    }
 
 
     // Get receivers (practitioners or patients based on current user's role)

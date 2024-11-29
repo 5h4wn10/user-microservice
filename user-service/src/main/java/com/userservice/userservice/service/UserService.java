@@ -48,9 +48,16 @@ public class UserService {
 
 
 
-    // Fetch user by username
-    public Optional<User> getUserByUsername(String username) {
-        return userRepository.findByUsername(username);
+    public UserDTO getUserByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+
+        return new UserDTO(
+                user.getId(),
+                user.getFullName(),
+                user.getUsername(),
+                user.getRole()
+        );
     }
 
     public User findUserByUsername(String username) {
