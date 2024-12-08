@@ -59,7 +59,7 @@ public class AuthController {
             System.out.println("User found: " + user.getUsername() + ", Role: " + user.getRole());
 
             // Använd JwtTokenUtil för att generera token
-            String token = jwtTokenUtil.generateToken(user.getUsername(), user.getRole());
+            String token = jwtTokenUtil.generateToken(user.getUsername(), user.getRole().name());
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Login successful");

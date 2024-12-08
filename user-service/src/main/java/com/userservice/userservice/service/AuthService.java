@@ -1,5 +1,6 @@
 package com.userservice.userservice.service;
 
+import com.userservice.userservice.config.JwtTokenUtil;
 import com.userservice.userservice.dto.AuthDTO;
 import com.userservice.userservice.dto.PatientDTO;
 import com.userservice.userservice.dto.PractitionerDTO;
@@ -8,6 +9,7 @@ import com.userservice.userservice.model.User;
 import com.userservice.userservice.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -20,12 +22,12 @@ public class AuthService {
     private UserRepository userRepository;
     @Autowired
     private UserService userService;
-
     @Autowired
     private PasswordEncoder passwordEncoder;
-
     @Autowired
-    private WebClient.Builder webClientBuilder; // För att anropa andra mikrotjänster
+    private WebClient.Builder webClientBuilder;
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil; // Generera JWT-token
 
     @Value("${patient.service.url}")
     private String patientServiceUrl;
@@ -33,8 +35,6 @@ public class AuthService {
     @Value("${practitioner.service.url}")
     private String practitionerServiceUrl;
 
-
-    // Register user
     public boolean registerUser(AuthDTO authRequest) {
         if (authRequest == null || authRequest.getRole() == null) {
             throw new IllegalArgumentException("Auth request or role cannot be null");
@@ -52,37 +52,46 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
+
+
+        // Generera en intern token för inter-service kommunikation
+        String internalToken = jwtTokenUtil.generateToken("user-service", authRequest.getRole().name());
+
         if (authRequest.getRole() == Role.PATIENT) {
-            createPatient(savedUser, authRequest);
+            createPatient(savedUser, authRequest, internalToken);
         } else if (userService.isPractitioner(user.getId())) {
             createPractitioner(savedUser, authRequest);
         }
 
         return true;
     }
+
     private void createPractitioner(User user, AuthDTO authRequest) {
+        String internalToken = jwtTokenUtil.generateInternalToken(); // Använd inter-service-token här
+
         PractitionerDTO practitionerDTO = new PractitionerDTO();
         practitionerDTO.setUserId(user.getId());
         practitionerDTO.setName(user.getFullName());
-        practitionerDTO.setRole(user.getRole());
-        practitionerDTO.setSpecialty(authRequest.getSpecialty()); // Specialty skickas i AuthDTO
+        practitionerDTO.setSpecialty(authRequest.getSpecialty());
         practitionerDTO.setRole(user.getRole());
 
         try {
             webClientBuilder.build()
                     .post()
                     .uri(practitionerServiceUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + internalToken)
                     .bodyValue(practitionerDTO)
                     .retrieve()
                     .toBodilessEntity()
                     .block();
+            System.out.println("Sent Token: " + internalToken);
+            System.out.println("Practitioner successfully created");
         } catch (WebClientException e) {
             throw new RuntimeException("Failed to create practitioner", e);
         }
     }
 
-
-    private void createPatient(User user, AuthDTO authRequest) {
+    private void createPatient(User user, AuthDTO authRequest, String token) {
         PatientDTO patientDTO = new PatientDTO();
         patientDTO.setUserId(user.getId());
         patientDTO.setName(user.getFullName());
@@ -94,6 +103,7 @@ public class AuthService {
             webClientBuilder.build()
                     .post()
                     .uri(patientServiceUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token) // Skicka token här
                     .bodyValue(patientDTO)
                     .retrieve()
                     .toBodilessEntity()
@@ -102,7 +112,6 @@ public class AuthService {
             throw new RuntimeException("Failed to create patient", e);
         }
     }
-
 
     public boolean authenticate(String username, String password) {
         return userRepository.findByUsername(username)

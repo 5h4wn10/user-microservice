@@ -3,15 +3,19 @@ package com.userservice.userservice.config;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtTokenFilter extends OncePerRequestFilter {
@@ -20,19 +24,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     private JwtTokenUtil jwtTokenUtil;
 
     @Override
-    protected void doFilterInternal(jakarta.servlet.http.HttpServletRequest request,
-                                    jakarta.servlet.http.HttpServletResponse response,
-                                    jakarta.servlet.FilterChain filterChain)
-            throws jakarta.servlet.ServletException, IOException {
-
-
-        String path = request.getRequestURI();
-
-        // Hoppa över autentisering för login och register endpoints
-        if (path.startsWith("/api/auth/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
@@ -40,17 +33,30 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7);
             try {
                 Claims claims = jwtTokenUtil.validateToken(token);
-                request.setAttribute("username", claims.getSubject());
-                request.setAttribute("role", claims.get("role"));
+                String role = (String) claims.get("role");
+                String subject = claims.getSubject(); // Hämta subject från token
+                System.out.println("Token Role: " + role);
+                System.out.println("Token Subject: " + subject);
+
+                if ("user-service".equals(subject)) {
+                    // Inter-service token - tilldelas ROLE_INTERNAL
+                    SecurityContextHolder.getContext().setAuthentication(
+                            new UsernamePasswordAuthenticationToken(subject, null,
+                                    List.of(new SimpleGrantedAuthority("ROLE_INTERNAL"))));
+                } else if ("ROLE_DOCTOR".equals(role) || "ROLE_PATIENT".equals(role) || "ROLE_STAFF".equals(role)) {
+                    // Vanlig användartoken
+                    SecurityContextHolder.getContext().setAuthentication(
+                            new UsernamePasswordAuthenticationToken(subject, null,
+                                    List.of(new SimpleGrantedAuthority(role))));
+                } else {
+                    throw new RuntimeException("Unauthorized role: " + role);
+                }
+
             } catch (Exception e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Invalid JWT Token");
+                response.getWriter().write("Invalid JWT Token: " + e.getMessage());
                 return;
             }
-        } else {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Missing Authorization Header");
-            return;
         }
 
         filterChain.doFilter(request, response);
