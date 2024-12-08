@@ -1,5 +1,6 @@
 package com.userservice.userservice.controller;
 
+import com.userservice.userservice.dto.AuthDTO;
 import com.userservice.userservice.dto.PatientDTO;
 import com.userservice.userservice.dto.UserDTO;
 import com.userservice.userservice.model.Role;
@@ -67,7 +68,7 @@ public class UserController {
 
     // Get all practitioners
     @GetMapping("/practitioners")
-    //@PreAuthorize("hasAnyAuthority('PATIENT', 'STAFF')")
+    //@PreAuthorize("hasAnyRole('PATIENT', 'STAFF')")
     public ResponseEntity<List<UserDTO>> getAllPractitioners() {
         return ResponseEntity.ok(userService.getAllPractitionersAsDTO());
         //return ResponseEntity.ok(userService.getUsersByRole(Role.valueOf("PRACTITIONER")));
@@ -91,6 +92,19 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(user);
+    }
+
+    @GetMapping("/by-username2/{username}")
+    public ResponseEntity<AuthDTO> getUserByUsername2(@PathVariable String username) {
+        User user = userService.findUserByUsername(username);
+
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Skapa och returnera AuthDTO
+        AuthDTO authDTO = new AuthDTO(user.getUsername(), user.getPassword(), user.getRole());
+        return ResponseEntity.ok(authDTO);
     }
 
 
@@ -125,7 +139,7 @@ public class UserController {
     }
 
     // Get patient details from patient-service
-    @PreAuthorize("hasAnyAuthority('DOCTOR', 'PATIENT')")
+    //@PreAuthorize("hasAnyRole('DOCTOR', 'PATIENT')")
     @GetMapping("/patients/{id}")
     public ResponseEntity<PatientDTO> getPatientDetails(@PathVariable Long id) {
         PatientDTO patientDetails = userService.getPatientDetails(id);

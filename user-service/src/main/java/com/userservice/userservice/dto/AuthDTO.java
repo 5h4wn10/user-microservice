@@ -18,6 +18,12 @@ public class AuthDTO {
     // För practitioners
     private String specialty;
 
+    public AuthDTO(String username, String password, Role role) {
+        this.username = username;
+        this.password = password;
+        this.role = role;
+    }
+
     // Getters och Setters
     public String getUsername() {
         return username;

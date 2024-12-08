@@ -1,5 +1,6 @@
 package com.userservice.userservice.service;
 
+import com.userservice.userservice.dto.AuthDTO;
 import com.userservice.userservice.dto.PatientDTO;
 import com.userservice.userservice.dto.UserDTO;
 import com.userservice.userservice.model.Role;
@@ -59,6 +60,7 @@ public class UserService {
                 user.getRole()
         );
     }
+
 
     public User findUserByUsername(String username) {
         return userRepository.findByUsername(username)
