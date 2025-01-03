@@ -43,7 +43,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(
                             new UsernamePasswordAuthenticationToken(subject, null,
                                     List.of(new SimpleGrantedAuthority("ROLE_INTERNAL"))));
-                } else if ("ROLE_DOCTOR".equals(role) || "ROLE_PATIENT".equals(role) || "ROLE_STAFF".equals(role)) {
+                } else if ("DOCTOR".contains(role) || "PATIENT".contains(role) || "STAFF".contains(role)) {
                     // Vanlig användartoken
                     SecurityContextHolder.getContext().setAuthentication(
                             new UsernamePasswordAuthenticationToken(subject, null,
