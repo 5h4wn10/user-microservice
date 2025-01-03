@@ -57,6 +57,7 @@ public class AuthController {
         if (isAuthenticated) {
             UserDTO user = userService.getUserByUsername(authRequest.getUsername());
             System.out.println("User found: " + user.getUsername() + ", Role: " + user.getRole());
+            System.out.println("Name of User: " + user.getFullName());
 
             // Använd JwtTokenUtil för att generera token
             String token = jwtTokenUtil.generateToken(user.getUsername(), user.getRole().name());

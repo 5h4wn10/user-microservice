@@ -109,20 +109,37 @@ public class UserController {
 
 
     // Get receivers (practitioners or patients based on current user's role)
-    @GetMapping("/receivers")
-    public ResponseEntity<List<UserDTO>> getReceivers(Authentication authentication) {
+    @GetMapping("/patients/receivers")
+    public ResponseEntity<List<UserDTO>> getReceiversForPatients(Authentication authentication) {
         User currentUser = userService.findUserByUsername(authentication.getName());
 
         List<UserDTO> receivers;
 
-        if (currentUser.getRole().equals("PATIENT")) {
+        /*if (currentUser.getRole().equals("PATIENT")) {
             receivers = userService.getAllPractitionersAsDTO();
         } else if (currentUser.getRole().equals("DOCTOR") || currentUser.getRole().equals("STAFF")) {
             receivers = userService.getAllPatientsAsDTO();
         } else {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        }*/
+        receivers = userService.getAllPractitionersAsDTO();
+        return ResponseEntity.ok(receivers);
+    }
 
+    @GetMapping("/practitioners/receivers")
+    public ResponseEntity<List<UserDTO>> getReceiversForPractitioners(Authentication authentication) {
+        User currentUser = userService.findUserByUsername(authentication.getName());
+
+        List<UserDTO> receivers;
+
+        /*if (currentUser.getRole().equals("PATIENT")) {
+            receivers = userService.getAllPractitionersAsDTO();
+        } else if (currentUser.getRole().equals("DOCTOR") || currentUser.getRole().equals("STAFF")) {
+            receivers = userService.getAllPatientsAsDTO();
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }*/
+        receivers = userService.getAllPatientsAsDTO();
         return ResponseEntity.ok(receivers);
     }
 
