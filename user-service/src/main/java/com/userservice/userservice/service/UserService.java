@@ -55,8 +55,8 @@ public class UserService {
 
         return new UserDTO(
                 user.getId(),
-                user.getFullName(),
                 user.getUsername(),
+                user.getFullName(),
                 user.getRole()
         );
     }

@@ -71,7 +71,7 @@ public class AuthService {
 
         PractitionerDTO practitionerDTO = new PractitionerDTO();
         practitionerDTO.setUserId(user.getId());
-        practitionerDTO.setName(user.getFullName());
+        practitionerDTO.setName(user.getUsername());
         practitionerDTO.setSpecialty(authRequest.getSpecialty());
         practitionerDTO.setRole(user.getRole());
 

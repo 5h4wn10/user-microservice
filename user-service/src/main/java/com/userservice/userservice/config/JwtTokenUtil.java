@@ -49,4 +49,5 @@ public class JwtTokenUtil {
                 .signWith(SECRET_KEY)
                 .compact();
     }
+
 }
