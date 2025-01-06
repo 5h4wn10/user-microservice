@@ -28,7 +28,7 @@ jobs:
         run: mvn clean package
 
       - name: Build and Push Docker Image
-        working-directory: ./user-microservice/user-service
+        working-directory: ./user-service
         env:
           DOCKER_USER: shansaifi
           DOCKER_PASS: Shan2003+NR
