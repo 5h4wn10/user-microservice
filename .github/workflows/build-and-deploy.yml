@@ -21,21 +21,25 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Run Unit Tests
+      # 3. Install MySQL Client (för att ansluta till databasen)
+      - name: Install MySQL Client
+        run: sudo apt-get install -y mysql-client
+
+      # 4. Kör tester och ange databasens URL från KTH Cloud
       - name: Run Unit Tests
         working-directory: ./user-service
         env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://192.168.65.3:3306/journalsystem_microservices_db
+          SPRING_DATASOURCE_URL: jdbc:mysql://sql-database.default.svc.cluster.local:3306/journalsystem_microservices_db
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: Shan123
         run: mvn clean test
 
-      # 4. Build JAR
+      # 5. Build JAR
       - name: Build JAR
         working-directory: ./user-service
         run: mvn clean package
 
-      # 5. Build and Push Docker Image
+      # 6. Build and Push Docker Image
       - name: Build and Push Docker Image
         working-directory: ./user-service
         env:
