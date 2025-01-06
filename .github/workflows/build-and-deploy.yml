@@ -25,7 +25,7 @@ jobs:
       - name: Run Unit Tests
         working-directory: ./user-service
         env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://192.168.65.3:30829/journalsystem_microservices_db
+          SPRING_DATASOURCE_URL: jdbc:mysql://192.168.65.3:3306/journalsystem_microservices_db
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: Shan123
         run: mvn clean test
