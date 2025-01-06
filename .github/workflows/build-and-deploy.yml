@@ -9,24 +9,51 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        env:
+          MYSQL_ROOT_PASSWORD: Shan123
+          MYSQL_DATABASE: journalsystem_microservices_db
+
     steps:
+      # 1. Hämta koden
       - name: Check out repository
         uses: actions/checkout@v3
 
+      # 2. Ställ in JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      # 3. Vänta på att MySQL-tjänsten ska starta
+      - name: Wait for MySQL
+        run: |
+          while ! mysqladmin ping -h mysql --silent; do
+            echo "Waiting for MySQL..."
+            sleep 3
+          done
+
+      # 4. Kör tester
       - name: Run Unit Tests
         working-directory: ./user-service
         run: mvn clean test
 
+      # 5. Bygg JAR
       - name: Build JAR
         working-directory: ./user-service
         run: mvn clean package
 
+      # 6. Bygg och push Docker Image
       - name: Build and Push Docker Image
         working-directory: ./user-service
         env:
