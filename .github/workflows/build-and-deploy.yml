@@ -20,11 +20,11 @@ jobs:
           distribution: 'temurin'
 
       - name: Run Unit Tests
-        working-directory: ./user-microservice/user-service
+        working-directory: ./user-service
         run: mvn clean test
 
       - name: Build JAR
-        working-directory: ./user-microservice/user-service
+        working-directory: ./user-service
         run: mvn clean package
 
       - name: Build and Push Docker Image
