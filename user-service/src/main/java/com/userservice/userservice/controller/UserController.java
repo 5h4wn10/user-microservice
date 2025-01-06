@@ -3,19 +3,15 @@ package com.userservice.userservice.controller;
 import com.userservice.userservice.dto.AuthDTO;
 import com.userservice.userservice.dto.PatientDTO;
 import com.userservice.userservice.dto.UserDTO;
-import com.userservice.userservice.model.Role;
 import com.userservice.userservice.model.User;
 import com.userservice.userservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -165,6 +161,12 @@ public class UserController {
         } else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("Det funkar");
     }
 
 

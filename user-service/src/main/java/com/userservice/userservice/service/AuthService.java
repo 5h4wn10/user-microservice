@@ -1,6 +1,5 @@
 package com.userservice.userservice.service;
 
-import com.userservice.userservice.config.JwtTokenUtil;
 import com.userservice.userservice.dto.AuthDTO;
 import com.userservice.userservice.dto.PatientDTO;
 import com.userservice.userservice.dto.PractitionerDTO;
@@ -15,25 +14,41 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
 
+import java.util.Map;
+import java.util.Optional;
+
 @Service
 public class AuthService {
 
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private UserService userService;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
+
     @Autowired
     private WebClient.Builder webClientBuilder;
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil; // Generera JWT-token
 
     @Value("${patient.service.url}")
     private String patientServiceUrl;
 
     @Value("${practitioner.service.url}")
     private String practitionerServiceUrl;
+
+    @Value("${keycloak.auth-server-url}")
+    private String keycloakUrl;
+
+    @Value("${keycloak.realm}")
+    private String realm;
+
+    @Value("${keycloak.resource}")
+    private String clientId;
+
+    @Value("${keycloak.credentials.secret}")
+    private String clientSecret;
 
     public boolean registerUser(AuthDTO authRequest) {
         if (authRequest == null || authRequest.getRole() == null) {
@@ -52,43 +67,46 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-
-
-        // Generera en intern token för inter-service kommunikation
-        String internalToken = jwtTokenUtil.generateToken("user-service", authRequest.getRole().name());
+        // Hämta en access token från Keycloak
+        String internalToken = fetchAccessToken();
 
         if (authRequest.getRole() == Role.PATIENT) {
             createPatient(savedUser, authRequest, internalToken);
         } else if (userService.isPractitioner(user.getId())) {
-            createPractitioner(savedUser, authRequest);
+            createPractitioner(savedUser, authRequest, internalToken);
         }
 
         return true;
     }
 
-    private void createPractitioner(User user, AuthDTO authRequest) {
-        String internalToken = jwtTokenUtil.generateInternalToken(); // Använd inter-service-token här
+    private String fetchAccessToken() {
+        try {
+            Map<String, Object> response = webClientBuilder.build()
+                    .post()
+                    .uri(keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token")
+                    .header(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded")
+                    .bodyValue("grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
 
+            System.out.println("Token fetch response: " + response);
+            return (String) response.get("access_token");
+        } catch (WebClientException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to fetch access token from Keycloak", e);
+        }
+    }
+
+    private void createPractitioner(User user, AuthDTO authRequest, String token) {
         PractitionerDTO practitionerDTO = new PractitionerDTO();
         practitionerDTO.setUserId(user.getId());
         practitionerDTO.setName(user.getUsername());
         practitionerDTO.setSpecialty(authRequest.getSpecialty());
         practitionerDTO.setRole(user.getRole());
 
-        try {
-            webClientBuilder.build()
-                    .post()
-                    .uri(practitionerServiceUrl)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + internalToken)
-                    .bodyValue(practitionerDTO)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .block();
-            System.out.println("Sent Token: " + internalToken);
-            System.out.println("Practitioner successfully created");
-        } catch (WebClientException e) {
-            throw new RuntimeException("Failed to create practitioner", e);
-        }
+        postToService(practitionerServiceUrl, practitionerDTO, token);
+
     }
 
     private void createPatient(User user, AuthDTO authRequest, String token) {
@@ -99,23 +117,27 @@ public class AuthService {
         patientDTO.setPersonalNumber(authRequest.getPersonalNumber());
         patientDTO.setDateOfBirth(authRequest.getDateOfBirth());
 
+        postToService(patientServiceUrl, patientDTO, token);
+
+    }
+
+    private void postToService(String url, Object body, String token) {
         try {
             webClientBuilder.build()
                     .post()
-                    .uri(patientServiceUrl)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token) // Skicka token här
-                    .bodyValue(patientDTO)
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(body)
                     .retrieve()
                     .toBodilessEntity()
                     .block();
         } catch (WebClientException e) {
-            throw new RuntimeException("Failed to create patient", e);
+            throw new RuntimeException("Failed to communicate with service at: " + url, e);
         }
     }
 
     public boolean authenticate(String username, String password) {
-        return userRepository.findByUsername(username)
-                .map(user -> passwordEncoder.matches(password, user.getPassword()))
-                .orElse(false);
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        return userOpt.map(user -> passwordEncoder.matches(password, user.getPassword())).orElse(false);
     }
 }

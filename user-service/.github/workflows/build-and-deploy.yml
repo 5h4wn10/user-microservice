@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Build and Deploy User-Microservice
 
 on:
   push:
@@ -6,34 +6,30 @@ on:
       - main
 
 jobs:
-  build-test-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
+      - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Set up JDK
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
+          distribution: 'temurin'
 
-      - name: Build with Maven
-        run: mvn clean install
+      - name: Run Unit Tests
+        run: mvn clean test
 
-      - name: Build Docker Image
-        run: docker build -t your-registry/your-image:latest .
+      - name: Build JAR
+        run: mvn clean package
 
-      - name: Push Docker Image
+      - name: Build and Push Docker Image
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USER: shansaifi
+          DOCKER_PASS: Shan2003+TS
         run: |
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-          docker push your-registry/your-image:latest
-
-      - name: Deploy to Kubernetes
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
-        run: |
-          kubectl apply -f k8s/deployment.yml
+          echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+          docker build --no-cache -t shansaifi/user-microservice:latest .
+          docker push shansaifi/user-microservice:latest
