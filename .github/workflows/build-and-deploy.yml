@@ -20,12 +20,15 @@ jobs:
           distribution: 'temurin'
 
       - name: Run Unit Tests
+        working-directory: ./patient-service
         run: mvn clean test
 
       - name: Build JAR
+        working-directory: ./patient-service
         run: mvn clean package
 
       - name: Build and Push Docker Image
+        working-directory: ./patient-service
         env:
           DOCKER_USER: shansaifi
           DOCKER_PASS: Shan2003+NR
